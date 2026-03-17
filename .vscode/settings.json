@@ -17,5 +17,13 @@
   "yaml.schemas": {
     "./.schemas/collection.schema.json": "*.collection.yml",
     "./.schemas/tools.schema.json": "website/data/tools.yml",
-  }
+  },
+  // Scan both the community agents collection and the standard .github/agents location.
+  // This lets contributors preview and test agents directly from this workspace without
+  // having to copy files. Users working in their own projects should place agents in
+  // .github/agents/ (or configure their own agentScanPaths in their workspace settings).
+  "github.copilot.chat.agentScanPaths": [
+    "agents",
+    ".github/agents"
+  ]
 }

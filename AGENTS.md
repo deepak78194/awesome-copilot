@@ -15,7 +15,8 @@ The Awesome GitHub Copilot repository is a community-driven collection of custom
 
 ```
 .
-├── agents/           # Custom GitHub Copilot agent definitions (.agent.md files)
+├── agents/           # Community collection of agent definitions (.agent.md files)
+├── .github/agents/   # Agents active in this repo (scanned automatically by Copilot)
 ├── instructions/     # Coding standards and guidelines (.instructions.md files)
 ├── skills/           # Agent Skills folders (each with SKILL.md and optional bundled assets)
 ├── hooks/            # Automated workflow hooks (folders with README.md + hooks.json)
@@ -23,8 +24,52 @@ The Awesome GitHub Copilot repository is a community-driven collection of custom
 ├── plugins/          # Installable plugin packages (folders with plugin.json)
 ├── docs/             # Documentation for different resource types
 ├── eng/              # Build and automation scripts
-└── scripts/          # Utility scripts
+└── scripts/          # Utility scripts (includes install-agents.sh)
 ```
+
+### Agent Architecture: Collection vs Active Location
+
+GitHub Copilot discovers agents from two types of locations:
+
+| Location | Purpose |
+|----------|---------|
+| `agents/` (top-level) | **Community collection** — hundreds of contributed agents that users browse and install from this repo |
+| `.github/agents/` | **Active agents** — agents that are live in a repository and available to all collaborators. Copilot scans this directory automatically. |
+
+**How agents in custom directories are referenced**
+
+GitHub Copilot (VS Code) supports scanning additional directories for agent files through the
+`github.copilot.chat.agentScanPaths` workspace setting. This repo's `.vscode/settings.json`
+already configures this so contributors can test agents from `agents/` directly:
+
+```json
+"github.copilot.chat.agentScanPaths": ["agents", ".github/agents"]
+```
+
+To enable the same in your own project, add the setting to your `.vscode/settings.json` with
+whichever directories you want Copilot to scan.
+
+**Installing agents from this collection into your project**
+
+Use the provided helper script to copy agents from the community collection into any target
+directory (the default target is `.github/agents/` in the current working directory):
+
+```bash
+# List all available agents
+bash scripts/install-agents.sh
+
+# Install a specific agent
+bash scripts/install-agents.sh --agent terraform
+
+# Install to a custom directory
+bash scripts/install-agents.sh --agent terraform --target /path/to/your/project/.github/agents
+
+# Install all agents
+bash scripts/install-agents.sh --all
+```
+
+Alternatively, use the **VS Code Install** buttons in the [agents table](docs/README.agents.md)
+(each row has a one-click install link) or install a plugin via the Copilot plugin marketplace.
 
 ## Setup Commands
 
