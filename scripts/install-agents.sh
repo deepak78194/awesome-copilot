@@ -105,7 +105,7 @@ if [[ "$INSTALL_ALL" == "true" ]]; then
     install_agent "$f" "$TARGET_DIR"
   done
   echo ""
-  echo "Done. $(ls "$TARGET_DIR"/*.agent.md 2>/dev/null | wc -l) agent(s) available in $TARGET_DIR"
+  echo "Done. $(find "$TARGET_DIR" -maxdepth 1 -name '*.agent.md' 2>/dev/null | wc -l) agent(s) available in $TARGET_DIR"
 else
   # Find agent by name (with or without .agent.md extension)
   AGENT_FILE="${AGENT_NAME%.agent.md}.agent.md"

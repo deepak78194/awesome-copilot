@@ -33,7 +33,7 @@ GitHub Copilot discovers agents from two types of locations:
 
 | Location | Purpose |
 |----------|---------|
-| `agents/` (top-level) | **Community collection** — hundreds of contributed agents that users browse and install from this repo |
+| `agents/` (top-level) | **Community collection** — a growing collection of contributed agents that users browse and install from this repo |
 | `.github/agents/` | **Active agents** — agents that are live in a repository and available to all collaborators. Copilot scans this directory automatically. |
 
 **How agents in custom directories are referenced**
