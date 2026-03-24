@@ -25,13 +25,13 @@ Everything in this enhancement plan works within these two constraints. No new t
 
 Each current pattern has specific gaps:
 
-| Gap | Wave Conductor | Guardian Loop | Assembly Line |
-|---|:---:|:---:|:---:|
-| Parallel coders are invisible to each other | ✗ Critical | — | — |
-| Plan is immutable even when reality contradicts it | ✗ | ✗ | ✗ |
-| Each agent starts cold — no accumulated run context | ✗ | ✗ | ✗ |
-| Reviewer findings are discarded after each wave/phase | ✗ | ✗ | ✗ |
-| Coder A's architectural decisions are invisible to Coder B | ✗ Critical | ✗ | ✗ |
+| Gap                                                        | Wave Conductor | Guardian Loop | Assembly Line |
+| ---------------------------------------------------------- | :------------: | :-----------: | :-----------: |
+| Parallel coders are invisible to each other                |   ✗ Critical   |       —       |       —       |
+| Plan is immutable even when reality contradicts it         |       ✗        |       ✗       |       ✗       |
+| Each agent starts cold — no accumulated run context        |       ✗        |       ✗       |       ✗       |
+| Reviewer findings are discarded after each wave/phase      |       ✗        |       ✗       |       ✗       |
+| Coder A's architectural decisions are invisible to Coder B |   ✗ Critical   |       ✗       |       ✗       |
 
 **The core problem in one sentence:** Every subagent in the current patterns starts as if it's the first agent to ever touch the project within this run. It cannot see what prior agents discovered, decided, or warned about.
 
@@ -89,25 +89,30 @@ Every subsequent subagent receives SHARED_CONTEXT at the top of its prompt.
 ## SHARED CONTEXT (accumulated during this run — read before doing any work)
 
 ### From Explorer
+
 - Tech stack: Node.js 20, Express 4.x, PostgreSQL 15, Jest
 - Auth pattern: JWT middleware already exists in `src/auth/middleware.ts` — do NOT replace it
 - DB column naming: snake_case throughout (e.g., `user_id`, `created_at`) — never camelCase
 - Test setup: integration tests use a real DB via Docker Compose — unit tests mock the DB
 
 ### From Planner
+
 - Chose repository pattern for all DB access — every new DAO must extend `BaseRepository`
 - Wave ordering rationale: schema migrations must complete before any service layer work
 
 ### From Wave 1 / Coder A (Task: user-auth-service)
+
 - Used bcrypt@5 for password hashing (argon2 was missing from package.json — do not add it)
 - Error handling: all service methods throw typed errors extending `AppError` from `src/errors.ts`
 - Decision: chose dependency injection via constructor, not service locator
 
 ### From Wave 1 / Coder B (Task: email-service)
+
 - Email provider: SendGrid SDK used (not Nodemailer) — already in package.json
 - Template pattern: all email templates stored in `src/templates/*.html`
 
 ### From Wave 1 Reviewer
+
 - WARNING: Rate limiting not yet implemented on auth endpoints — flagged for Wave 2
 - WARNING: `email-service` tests mock the SendGrid client but production code uses the real client — ensure Wave 2 integration tests account for this
 ```
@@ -131,11 +136,11 @@ After each subagent returns, the orchestrator MUST:
 
 ### Impact Per Pattern
 
-| Pattern | Impact |
-|---|---|
-| **Wave Conductor** | Parallel coders in Wave 2 see all Wave 1 decisions. Critical gap closed. |
-| **Guardian Loop** | Each new sentinel-coder gets context from all prior completed tasks — no cold starts on retries. |
-| **Assembly Line** | Each station-coder inherits the full picture from all prior stations. |
+| Pattern            | Impact                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| **Wave Conductor** | Parallel coders in Wave 2 see all Wave 1 decisions. Critical gap closed.                         |
+| **Guardian Loop**  | Each new sentinel-coder gets context from all prior completed tasks — no cold starts on retries. |
+| **Assembly Line**  | Each station-coder inherits the full picture from all prior stations.                            |
 
 ### Implementation Effort
 
@@ -171,34 +176,40 @@ The `.session/` folder is temporary — it should be gitignored or cleaned up af
 <!-- Entries are appended as the run progresses. Do not edit manually. -->
 
 ## [FINDING] Explorer · 2026-03-24
+
 No existing auth system found. Must build from scratch. JWT library not in package.json — needs to be added.
 
 ## [DECISION] Task-2 · Coder · auth-service
+
 Chose bcrypt@5 over argon2 — argon2 was not in dependencies. All password operations must use bcrypt.
 Files affected: `src/auth/service.ts`, `src/auth/hash.ts`
 
 ## [DECISION] Task-2 · Coder · auth-service
+
 Repository pattern selected for all DB access. Every new DAO extends `BaseRepository` from `src/db/base.ts`.
 
 ## [RISK] Task-3 · Coder · email-service
+
 Rate limiting on /auth/login endpoint not implemented. Marked as known gap — must be addressed before production.
 
 ## [BLOCKER] Task-4 · Reviewer · email-service
+
 Email service mocks SendGrid in tests but uses real client in production. Task-5 integration tests must account for this or they will fail in CI.
 
 ## [CONSTRAINT] Task-5 · Reviewer · user-profile
+
 DB schema for `users` table uses snake_case. Any new columns added must follow this convention. camelCase columns will break the ORM mapping.
 ```
 
 ### Entry Tags and Their Meaning
 
-| Tag | Written by | Meaning | Who reads it |
-|---|---|---|---|
-| `[FINDING]` | Explorer, Coder | Discovered fact about the codebase | All subsequent agents |
-| `[DECISION]` | Coder | Architectural or technical choice made that future coders must respect | All subsequent coders |
-| `[RISK]` | Coder, Reviewer | Known gap or fragile area that later tasks should be aware of | Orchestrator before next wave/phase, subsequent reviewers |
-| `[BLOCKER]` | Reviewer | Something that WILL cause failure in a future task if not addressed | Orchestrator reads immediately, injects into next coder prompt |
-| `[CONSTRAINT]` | Reviewer | A hard rule discovered during validation that all future coders must follow | All subsequent coders |
+| Tag            | Written by      | Meaning                                                                     | Who reads it                                                   |
+| -------------- | --------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `[FINDING]`    | Explorer, Coder | Discovered fact about the codebase                                          | All subsequent agents                                          |
+| `[DECISION]`   | Coder           | Architectural or technical choice made that future coders must respect      | All subsequent coders                                          |
+| `[RISK]`       | Coder, Reviewer | Known gap or fragile area that later tasks should be aware of               | Orchestrator before next wave/phase, subsequent reviewers      |
+| `[BLOCKER]`    | Reviewer        | Something that WILL cause failure in a future task if not addressed         | Orchestrator reads immediately, injects into next coder prompt |
+| `[CONSTRAINT]` | Reviewer        | A hard rule discovered during validation that all future coders must follow | All subsequent coders                                          |
 
 ### Orchestrator Board-Reading Protocol
 
@@ -230,21 +241,21 @@ If you have nothing to add, do not append anything.
 
 ### Impact Per Pattern
 
-| Pattern | Impact |
-|---|---|
+| Pattern            | Impact                                                                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Wave Conductor** | Parallel coders write to the board independently. After the wave, the orchestrator reads all `[DECISION]` entries and injects them into Wave N+1 coders. Parallel coders now effectively collaborate through the board. |
-| **Guardian Loop** | Each sentinel-coder's decisions become constraints for the next task's coder. Reviewers can write `[BLOCKER]` entries that the guardian reads before delegating the next task's work. |
-| **Assembly Line** | Board entries persist across phases. Phase 3 coder sees exactly what Phase 1 and Phase 2 decided — no cold start. The board complements `.pipeline/plan.md` with live discoveries not in the original plan. |
+| **Guardian Loop**  | Each sentinel-coder's decisions become constraints for the next task's coder. Reviewers can write `[BLOCKER]` entries that the guardian reads before delegating the next task's work.                                   |
+| **Assembly Line**  | Board entries persist across phases. Phase 3 coder sees exactly what Phase 1 and Phase 2 decided — no cold start. The board complements `.pipeline/plan.md` with live discoveries not in the original plan.             |
 
 ### Board vs SHARED_CONTEXT — When to Use Which
 
-| | SHARED_CONTEXT | Session Board |
-|---|---|---|
-| Lives in | Orchestrator working memory | File on disk (`.session/board.md`) |
-| Visible to humans mid-run | No | Yes |
-| Can be read by subagents | No — orchestrator injects it | Yes — agents append directly |
-| Survives a session restart | No | Yes (until manually deleted) |
-| Best for | Summarised context in prompts | Raw agent-to-agent communication |
+|                            | SHARED_CONTEXT                | Session Board                      |
+| -------------------------- | ----------------------------- | ---------------------------------- |
+| Lives in                   | Orchestrator working memory   | File on disk (`.session/board.md`) |
+| Visible to humans mid-run  | No                            | Yes                                |
+| Can be read by subagents   | No — orchestrator injects it  | Yes — agents append directly       |
+| Survives a session restart | No                            | Yes (until manually deleted)       |
+| Best for                   | Summarised context in prompts | Raw agent-to-agent communication   |
 
 **Use both together.** The orchestrator extracts from the board into SHARED_CONTEXT. The board is the raw source; SHARED_CONTEXT is the curated digest.
 
@@ -335,11 +346,11 @@ The orchestrator replaces the remaining portion of the plan with the micro-repla
 
 ### Impact Per Pattern
 
-| Pattern | Impact |
-|---|---|
-| **Wave Conductor** | After each wave review, the orchestrator checks for SIGNIFICANT_CHANGE. If true, triggers micro-replan before next wave. Plans survive reality. |
-| **Guardian Loop** | After every 3 tasks validate, the orchestrator checks accumulated board entries for SIGNIFICANT_CHANGE. If true, micro-replan runs against remaining tasks. |
-| **Assembly Line** | After each phase review, orchestrator checks for SIGNIFICANT_CHANGE. If true, `station-planner` is called with a targeted amendment prompt. The amended plan is written back to `.pipeline/plan.md`. |
+| Pattern            | Impact                                                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Wave Conductor** | After each wave review, the orchestrator checks for SIGNIFICANT_CHANGE. If true, triggers micro-replan before next wave. Plans survive reality.                                                      |
+| **Guardian Loop**  | After every 3 tasks validate, the orchestrator checks accumulated board entries for SIGNIFICANT_CHANGE. If true, micro-replan runs against remaining tasks.                                          |
+| **Assembly Line**  | After each phase review, orchestrator checks for SIGNIFICANT_CHANGE. If true, `station-planner` is called with a targeted amendment prompt. The amended plan is written back to `.pipeline/plan.md`. |
 
 ### Implementation Effort
 
@@ -399,15 +410,15 @@ Run start
 
 All three enhancements are **fully compatible** with GitHub Copilot in VS Code, CLI, and as coding agents. Here is why:
 
-| Requirement | E1: Progressive Context | E2: Session Board | E3: Adaptive Plan Gate |
-|---|---|---|---|
-| New Copilot tools needed | None | None (file I/O) | None |
-| New agent types needed | None | None | None |
-| Works offline / no network | Yes | Yes | Yes |
-| Works in CLI mode | Yes | Yes | Yes |
-| Works in VS Code agent mode | Yes | Yes | Yes |
-| Requires user interaction | No | No | Only if micro-replan adds new scope |
-| Risk of infinite loops | No | No | No (one replan max per wave) |
+| Requirement                 | E1: Progressive Context | E2: Session Board | E3: Adaptive Plan Gate              |
+| --------------------------- | ----------------------- | ----------------- | ----------------------------------- |
+| New Copilot tools needed    | None                    | None (file I/O)   | None                                |
+| New agent types needed      | None                    | None              | None                                |
+| Works offline / no network  | Yes                     | Yes               | Yes                                 |
+| Works in CLI mode           | Yes                     | Yes               | Yes                                 |
+| Works in VS Code agent mode | Yes                     | Yes               | Yes                                 |
+| Requires user interaction   | No                      | No                | Only if micro-replan adds new scope |
+| Risk of infinite loops      | No                      | No                | No (one replan max per wave)        |
 
 ---
 
@@ -417,11 +428,11 @@ All three enhancements are **fully compatible** with GitHub Copilot in VS Code, 
 
 Touch only the three orchestrator files. All subagent files unchanged.
 
-| File | Change |
-|---|---|
+| File                                | Change                                                               |
+| ----------------------------------- | -------------------------------------------------------------------- |
 | `wave-conductor/conductor.agent.md` | Add SHARED_CONTEXT extraction + injection to all `runSubagent` calls |
-| `guardian-loop/guardian.agent.md` | Add SHARED_CONTEXT extraction + injection to all `runSubagent` calls |
-| `assembly-line/foreman.agent.md` | Add SHARED_CONTEXT extraction + injection to all `runSubagent` calls |
+| `guardian-loop/guardian.agent.md`   | Add SHARED_CONTEXT extraction + injection to all `runSubagent` calls |
+| `assembly-line/foreman.agent.md`    | Add SHARED_CONTEXT extraction + injection to all `runSubagent` calls |
 
 Estimated effort: **Low** — 3 file edits, orchestrator-only.
 
@@ -431,18 +442,18 @@ Estimated effort: **Low** — 3 file edits, orchestrator-only.
 
 Add the Session Decision Board to all patterns.
 
-| File | Change |
-|---|---|
-| `wave-conductor/conductor.agent.md` | Add board creation, board-reading checkpoints |
-| `guardian-loop/guardian.agent.md` | Add board creation, board-reading checkpoints |
-| `assembly-line/foreman.agent.md` | Add board creation, board-reading checkpoints |
-| `wave-conductor/wave-coder.agent.md` | Add board-writing protocol |
-| `wave-conductor/wave-reviewer.agent.md` | Add board-writing protocol |
-| `guardian-loop/sentinel-coder.agent.md` | Add board-writing protocol |
-| `guardian-loop/sentinel-reviewer.agent.md` | Add board-writing protocol |
-| `assembly-line/station-coder.agent.md` | Add board-writing protocol |
-| `assembly-line/station-reviewer.agent.md` | Add board-writing protocol |
-| `.gitignore` (root) | Add `.session/` to ignored paths |
+| File                                       | Change                                        |
+| ------------------------------------------ | --------------------------------------------- |
+| `wave-conductor/conductor.agent.md`        | Add board creation, board-reading checkpoints |
+| `guardian-loop/guardian.agent.md`          | Add board creation, board-reading checkpoints |
+| `assembly-line/foreman.agent.md`           | Add board creation, board-reading checkpoints |
+| `wave-conductor/wave-coder.agent.md`       | Add board-writing protocol                    |
+| `wave-conductor/wave-reviewer.agent.md`    | Add board-writing protocol                    |
+| `guardian-loop/sentinel-coder.agent.md`    | Add board-writing protocol                    |
+| `guardian-loop/sentinel-reviewer.agent.md` | Add board-writing protocol                    |
+| `assembly-line/station-coder.agent.md`     | Add board-writing protocol                    |
+| `assembly-line/station-reviewer.agent.md`  | Add board-writing protocol                    |
+| `.gitignore` (root)                        | Add `.session/` to ignored paths              |
 
 Estimated effort: **Medium** — 10 file edits, all well-defined.
 
@@ -452,11 +463,11 @@ Estimated effort: **Medium** — 10 file edits, all well-defined.
 
 Add Adaptive Plan Gate on top of Phase B.
 
-| File | Change |
-|---|---|
-| `wave-conductor/conductor.agent.md` | Add SIGNIFICANT_CHANGE detection + micro-replan protocol |
-| `guardian-loop/guardian.agent.md` | Add SIGNIFICANT_CHANGE detection + micro-replan protocol (every 3 tasks) |
-| `assembly-line/foreman.agent.md` | Add SIGNIFICANT_CHANGE detection + micro-replan protocol + `.pipeline/plan.md` amendment |
+| File                                | Change                                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| `wave-conductor/conductor.agent.md` | Add SIGNIFICANT_CHANGE detection + micro-replan protocol                                 |
+| `guardian-loop/guardian.agent.md`   | Add SIGNIFICANT_CHANGE detection + micro-replan protocol (every 3 tasks)                 |
+| `assembly-line/foreman.agent.md`    | Add SIGNIFICANT_CHANGE detection + micro-replan protocol + `.pipeline/plan.md` amendment |
 
 Estimated effort: **Medium-High** — 3 file edits, but the SIGNIFICANT_CHANGE logic is the most cognitively complex part.
 
@@ -466,12 +477,12 @@ Estimated effort: **Medium-High** — 3 file edits, but the SIGNIFICANT_CHANGE l
 
 These enhancements close the within-run collaboration gap. They do **not** provide:
 
-| Capability | Covered? | For this, use |
-|---|---|---|
-| Knowledge that persists across multiple runs | No | Evolution Engine |
-| Versioned architectural decisions | No | Evolution Engine |
-| Lessons from past mistakes applied to future runs | No | Evolution Engine |
-| Pattern governance (active/deprecated/blocked) | No | Evolution Engine |
+| Capability                                        | Covered? | For this, use    |
+| ------------------------------------------------- | -------- | ---------------- |
+| Knowledge that persists across multiple runs      | No       | Evolution Engine |
+| Versioned architectural decisions                 | No       | Evolution Engine |
+| Lessons from past mistakes applied to future runs | No       | Evolution Engine |
+| Pattern governance (active/deprecated/blocked)    | No       | Evolution Engine |
 
 The three enhancements and the Evolution Engine are **complementary, not competing**. You can apply all three enhancements to the Evolution Engine as well — the within-run board and SHARED_CONTEXT work alongside the long-term `.nucleus/` knowledge stores.
 
@@ -479,11 +490,11 @@ The three enhancements and the Evolution Engine are **complementary, not competi
 
 ## Summary
 
-| Enhancement | Effort | What it closes |
-|---|---|---|
-| E1: Progressive Context Enrichment | Low — orchestrator only | Cold-start problem; agents no longer work in ignorance of prior decisions |
-| E2: Session Decision Board | Medium — coders + reviewers + orchestrators | Parallel coder conflicts; human-visible mid-run state; agent-native communication |
-| E3: Adaptive Plan Gate | Medium-High — orchestrator only | Stale plan problem; plans survive unexpected reality |
+| Enhancement                        | Effort                                      | What it closes                                                                    |
+| ---------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------- |
+| E1: Progressive Context Enrichment | Low — orchestrator only                     | Cold-start problem; agents no longer work in ignorance of prior decisions         |
+| E2: Session Decision Board         | Medium — coders + reviewers + orchestrators | Parallel coder conflicts; human-visible mid-run state; agent-native communication |
+| E3: Adaptive Plan Gate             | Medium-High — orchestrator only             | Stale plan problem; plans survive unexpected reality                              |
 
 **Together, E1 + E2 + E3 give all three patterns roughly 75% of Evolution Engine's within-run intelligence — with zero long-term persistence overhead, full CLI/VS Code compatibility, and no new agents or tools.**
 
